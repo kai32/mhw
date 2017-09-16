@@ -24,10 +24,11 @@ module mojo_top (
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
+    button_conditioner button_conditioner;
     
     .rst(rst) {
      trigger trigger;
-     dff counter[3];
+     gate_tester gate_tester;
     }
   }
   
@@ -44,9 +45,11 @@ module mojo_top (
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
     
-    if (trigger.out) {
-      counter.d = counter.q + 1;
-    }
-    io_led[0] = c{5h00, counter.q};
+    gate_tester.trigger = trigger.out;
+    button_conditioner.in = io_button[0];
+    gate_tester.button = button_conditioner.out;
+    
+    io_led[0] = c{5h0, gate_tester.cin, gate_tester.b, gate_tester.a};
+    io_led[1] = c{6h0, gate_tester.cout, gate_tester.sum};
   }
 }

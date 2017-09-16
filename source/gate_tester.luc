@@ -1,0 +1,42 @@
+module gate_tester (
+    input clk,  // clock
+    input rst,  // reset
+    input button,
+    input trigger,
+    output a,
+    output b,
+    output cin,
+    output sum,
+    output cout
+  ) {
+  
+  sig ans[2];
+  
+  .clk(clk) {
+    .rst(rst) {
+      fsm state = {IDLE, GENOUT, VERIFY}; // default will be IDLE
+      dff counter[3];
+    }
+  }
+  always {
+    a = counter.q[0];
+    b = counter.q[1];
+    cin = counter.q[2];
+    ans = counter.q[0] + counter.q[1] + counter.q[2];
+    sum = ans[0];
+    cout = ans[1];
+    
+    case (state.q) {
+      state.IDLE:
+        counter.d = 0;
+        if (button) {
+          state.d = state.GENOUT;  
+        }
+      state.GENOUT:
+        if (trigger) {
+          counter.d = counter.q + 1;
+        }
+      
+    }
+  }
+}
