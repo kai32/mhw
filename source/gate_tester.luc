@@ -7,27 +7,37 @@ module gate_tester (
     output b,
     output cin,
     output sum,
-    output cout
+    output cout,
+    input detectedSum,
+    input detectedCout,
+    output status[8]
   ) {
   
   sig ans[2];
   
   .clk(clk) {
     .rst(rst) {
-      fsm state = {IDLE, GENOUT, VERIFY}; // default will be IDLE
+      fsm state = {IDLE, GENOUT, VERIFY, WRONG}; // default will be IDLE
       dff counter[3];
+      dff blinker[25];
     }
   }
+  
+  
   always {
+    
     a = counter.q[0];
     b = counter.q[1];
     cin = counter.q[2];
     ans = counter.q[0] + counter.q[1] + counter.q[2];
     sum = ans[0];
     cout = ans[1];
+    status = 8h0;
+    blinker.d = 0;
     
     case (state.q) {
       state.IDLE:
+        status = 8x{1};
         counter.d = 0;
         if (button) {
           state.d = state.GENOUT;  
@@ -35,8 +45,26 @@ module gate_tester (
       state.GENOUT:
         if (trigger) {
           counter.d = counter.q + 1;
+          state.d = state.VERIFY;
         }
-      
+      state.VERIFY:
+        // wait for a trigger so that the reading can stabelise
+        if (trigger) {
+          if ( detectedCout != ans[1] || detectedSum != ans[0]) {
+            state.d = state.WRONG;
+          } else if (counter.q == 7) { // if counter is full, go to idle
+             state.d = state.IDLE;
+          } else {
+           state.d = state.GENOUT;
+          }
+        }
+      state.WRONG:
+        if (button) {
+            state.d = state.IDLE;  
+        }
+        blinker.d = blinker.q + 1;
+        status = c{4x{blinker.q[24]}, 4x{~blinker.q[24]}};
+        
     }
   }
 }
